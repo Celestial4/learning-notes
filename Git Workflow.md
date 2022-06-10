@@ -71,7 +71,7 @@ $ git switch -c testing
 
 
 
-### 检查当前HEAD指针、显示分支情况
+### 查看所有分支情况
 
 ```console
 $ git log --oneline --graph --all
@@ -87,7 +87,45 @@ $ git log --oneline --graph --all
 $ git branch -d del_branch
 ```
 
-
+> * 删除分支时，先切换到另外的分支（HEAD指向的branch不能被删除）
+>
+> * 如果要删除的分支位于当前分支前（有新的commit），需要将要删除的branch合并到当前branch，然后删除；位于当前分支后的branch可以删除
 
 ### branch merge 分支合并
+
+合并分支命令：
+
+```sh
+$ git merge hotfix
+```
+
+合并是将其他分支合并到当前分支（合并的结果是移动当前branch），因此需要先切换到要合并的branch上
+
+#### fast-forward 向前合并
+
+当要合并的分支  直接 位于被合并的分支后，即在同一路径上，这种情况下没有分叉，Git会直接移动当前branch到被合并branch位置
+
+> <img src="C:\Users\pc\AppData\Roaming\Typora\typora-user-images\image-20220610143047905.png" alt="image-20220610143047905" style="zoom:50%;" />
+>
+> 执行命令 git merge hotfix
+>
+> 就会使得master直接移动到hotfix位置
+
+接下来可以把hotfix分支删除了 git branch -d hotfix
+
+#### 一般合并
+
+除了上面那种情况外（两个分支不在一条链上，不互为直接祖先子孙）进行合并时，Git会考察3个commit对象，要合并的branch指向的、被合并的branch指向的、以及前二者的公共祖先commit对象
+
+<img src="C:\Users\pc\AppData\Roaming\Typora\typora-user-images\image-20220610143928736.png" alt="image-20220610143928736" style="zoom: 80%;" />
+
+然后Git根据这3个commit创建一个新的快照（snapshot），然后创建一个新的commit指向这个快照，这个新的commit称为merge  commit，具有两个parent
+
+![image-20220610144124561](C:\Users\pc\AppData\Roaming\Typora\typora-user-images\image-20220610144124561.png)
+
+最后就可以删除被合并的，没有用的分支了
+
+#### merge conflict 合并冲突
+
+一般情况下，合并会产生冲突（两个分支中对同一个文件中同一个部分有不同的内容），这时就会产生合并冲突。Git就不会自动的创建merge commit，这时需要手动解决冲突，解决后再次提交
 
