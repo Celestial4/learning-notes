@@ -1,5 +1,19 @@
 # Git Workflow
 
+## SSH
+
+### 创建ssh key
+
+```sh
+$ ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+### 改变Git仓库url
+
+```sh
+$ git remote set-url <name> <url>
+```
+
 ## Branch basic
 
 ### commit对象以及结构
@@ -158,4 +172,63 @@ $ git branch (-m | -M) [<oldbranch>] <newbranch>
 ```
 
 > oldbranch参数没有的话修改当前分支
+
+## remote branch
+
+### remote-tracking branches 远程追踪分支
+
+remote-tracking branches是远程分支状态的引用，名称为`<remote>/<branch>`。保存在本地，且不能修改；在进行与远程git服务器通信时，Git处理这个分支，用来提示你远程仓库的状态
+
+#### remote add 新增远程分支
+
+```sh
+$ git remote add <remote_name> <url>
+```
+
+#### git fetch同步远程分支
+
+远程仓库的分支可能被其他人上传更新导致与本地仓库分支有了分叉。只要没有跟服务器通信，那么本地的origin/main分支就不会移动
+
+同步命令：
+
+```sh
+$ git fetch <remote>
+```
+
+> 这个命令会从服务器下载本地没有的数据，同时更新本地origin/main分支，并且移动远程branch到最新的位置
+>
+> 这个命令不会merge本地和远程（不会在本地中显示出来，只会表示出origin/main 指向的位置）
+>
+> <img src="C:\Users\pc\AppData\Roaming\Typora\typora-user-images\image-20220610163110941.png" alt="image-20220610163110941" style="zoom:80%;" />
+
+#### 创建从远程拉下来的分支的本地分支
+
+git fetch拉取新URL的分支时不会在本地自动创建分支，需要手动创建一个分支来同步远程的新分支，再手动merge就可以了
+
+```sh
+$ git switch -c <new_branch> <remote/branch>
+$ git merge <remote/branch>
+```
+
+### push remote
+
+#### 本地分支追踪远程分支
+
+设有一个远程分支origin/test
+
+```sh
+$ git branch -u origin/test
+```
+
+#### 查看本地分支追踪的远程分支
+
+```sh
+$ git branch -vv
+```
+
+###  Deleting Remote Branches 删除远程分支
+
+```sh
+$ git push origin -d <branch>
+```
 
