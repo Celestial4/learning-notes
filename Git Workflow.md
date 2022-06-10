@@ -129,3 +129,33 @@ $ git merge hotfix
 
 一般情况下，合并会产生冲突（两个分支中对同一个文件中同一个部分有不同的内容），这时就会产生合并冲突。Git就不会自动的创建merge commit，这时需要手动解决冲突，解决后再次提交
 
+### branch 管理命令（修改，查看）
+
+#### branch detail 分支详情
+
+```sh
+$ git branch -v -a
+```
+
+> 查看所有分支，包括远程分支
+
+#### 查看未合并的分支
+
+```sh
+$ git branch --no-merged
+```
+
+#### 查看已经合并的分支
+
+```sh
+$ git branch --merged
+```
+
+#### 更改branch 名
+
+```sh
+$ git branch (-m | -M) [<oldbranch>] <newbranch>
+```
+
+> oldbranch参数没有的话修改当前分支
+
