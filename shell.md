@@ -1,5 +1,102 @@
 # shell basic
 
+## 加载过程中执行的文件
+
+* login shell:  /etc/profile  -->  ~/.bash_profile ---> ~/.bash_login ---> ~/.profile
+* interactive shell(subshell):  /etc/bash.bashrc ---> ~/.bashrc
+
+## terminology
+
+### metacharacter
+
+> 在没有被引号括起来的时候，元字符用于分隔word(token)，有以下符号
+>
+> | 	 &	 ;	 (	 )	 <	 > 	space	 tab	 newline
+
+### control operator
+
+> 起控制功能的token，有以下符号
+>
+> ||	 &	 &&	 ;	 ;;	 ;& 	;;& 	( 	) 	| 	|& 	<newline>
+
+### single command
+
+> 第一个token为命令名，后面接着的是可选的以blank分隔的用户参数，或者重定向，最终被control operator终止
+
+### pipelines
+
+> pipeline是一个由一个或多个命令组成的序列，命令之间由control operator | 或者 |& 分隔
+>
+> 格式为：
+
+```sh
+[time [-p]] [ ! ] command [ [|⎪|&] command2 ... ]
+```
+
+> 注意事项：
+>
+> * command的标准输出通过pipe连接到command2的标准输入，这个动作在任何重定向之前发生
+> * |& 会额外将command的标准err输出连接到command2的标准输入
+> * pipeline的退出状态exit status由最后一个命令决定
+> * ！ 将pipeline的exit status逻辑取反
+> * time 用于记录运行时间
+
+### lists
+
+> 一个list是由一个或者多个pipeline组成，pipeline之间用control operator中的  ;，&，&&，|| 分隔，终止符用 ;，&，<newline>.
+>
+> * && 和|| 优先级最高，其次是； &
+> * 在shell脚本中，可能用newline代替；来分隔pipeline
+> * 一个命令用&结束的话，会在子shell中后台运行该命令
+> * 用；分隔的命令依次执行，exit status由最后一个命令决定
+
+
+
+##### AND list
+
+```sh
+command1 && command2
+```
+
+> command2只有在command1执行返回0情况下才执行
+
+##### OR list
+
+```sh
+command1 || command2
+```
+
+> command2 只有在commond1返回非0 情况下才执行（command1执行异常）
+
+以上两种list返回状态都是由最后一个执行的命令决定
+
+### compound command
+
+#### (list)
+
+> list执行在子shell中
+
+#### { list; }  （group command）
+
+> * 执行在当前shell中
+> * 因为{ 和 } 都是保留字符而不是元字符或者控制字符，他们不能用于分隔token，因此间隔一个空格或者其他元字符
+> * exit status由list决定，也就是其中最后一个执行命令决定
+
+#### ((expression))
+
+> 数字运算
+>
+> 等价于执行  let "expression"
+
+#### [[ expression ]]
+
+> expression 为条件表达式，整体返回值由这个exp的计算结果表示
+>
+> * 在[[ ]]里面，word splitting 和pathname expansion 不会作用于word上，其他的expansion有效
+> * 在这里面对比字符串，==、!=右边的字符串会被当做模式，模式中如果需要强制当做字符串匹配，把那部分引用起来
+> * =与==等价
+> * 匹配返回0，不匹配返回1
+
 ## ${variable}
 
 {}只是用于帮助区分变量名
@@ -72,7 +169,7 @@ expr arg1 op arg2
 
 op常常需要转义\
 
-### $[]  使用方括号
+### $[]  使用方括号	\$(())
 
 ```shell
 把要计算的表达式放在$[]方括号中
@@ -80,7 +177,7 @@ va1=$[5+1]
 echo $[5-1]
 ```
 
-
+> $[] 快要过时，建议使用   \$(())
 
 ## exit status
 
@@ -203,6 +300,11 @@ if (( expression ))
 ```
 
 > 除了标准的[ ]中能使用的数学操作符，双括号可以提供数字赋值或者比较的表达式
+>
+> 不同的格式：
+>
+> * 赋值可以=两边有空格
+> * 使用变量时不用前面加$
 
 | Symbol | Description    |
 | ------ | -------------- |
@@ -223,3 +325,134 @@ if (( expression ))
 ### 双方括号[[]]
 
 提供高级字符串比较（模式匹配），注意不是所有的shell都支持[[]]
+
+## loop
+
+### for command
+
+```shl
+for var in list; do
+	commands 
+done
+```
+
+list有几种情况：
+
+#### 自身定义的list
+
+```sh
+for v in a b c d; do 
+	echo $v
+done
+```
+
+> 每次迭代向$v赋list中的值，\$v在整个脚本中都有效，并且出了for后\$v保留最后一次迭代的值
+
+#### 保存在变量中
+
+```sh
+var1="hello world"
+for v in $var1; do
+	echo $v
+done
+```
+
+#### 利用command返回值
+
+> utilize command substitution
+
+```sh
+for v in $(xxx); do
+	commands
+done
+```
+
+#### IFS环境变量
+
+> 默认IFS（internal field separator，word分隔符）为（space tab newline。。。）
+>
+> 有时候需要将返回值中一行当做一个整体数据，需要改变IFS默认值
+
+```sh
+IFS.OLD=$IFS
+IFS=$'\n'
+xxxx#具体操作
+IFS=$IFS.OLD
+```
+
+> 另外可以设置IFS为其他字符用于处理其他格式的字符串，例如处理/etc/passwd文件时，因为用的: 分隔，可以设置IFS为冒号来方便后续处理
+>
+> 可以设置任意多个IFS字符，方法就是直接在后面接着写
+
+```sh
+IFS=$'\n':;"
+```
+
+#### 利用file glob
+
+file glob用于产生一个list，内容为满足通配表达式的文件路径
+
+```sh
+for v in /home/*; do
+	commands
+done
+```
+
+### c style for
+
+```sh
+for (( expr1 ; expr2 ; expr3 )) ; do 
+	list 
+done
+```
+
+### while command
+
+```sh
+while test command; do
+	other commands 
+done
+```
+
+> 根据test command返回结果判断是否执行，exit status为0则执行，反之则反
+>
+> test command 可以用 [ ]
+
+### util command
+
+类似while，不过测试条件判断相反
+
+### braek command
+
+跳出外层循环：
+
+```sh
+xxxx
+break n
+xxxx
+```
+
+> n默认为1，表示本层循环，n设置为其他就可以跳出那一层的循环
+
+### continue command
+
+类似break，可以continue n
+
+### 处理循环过程中输出的信息
+
+#### 重定向保存
+
+> 在循环中可能涉及到输出信息，可以将这些信息保存下来而不是输出在父shell中
+
+```sh
+xxx
+done > data.txt
+```
+
+#### pipe到其他命令
+
+```sh
+xxx
+done | less
+```
+
