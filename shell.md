@@ -5,6 +5,17 @@
 * login shell:  /etc/profile  -->  ~/.bash_profile ---> ~/.bash_login ---> ~/.profile
 * interactive shell(subshell):  /etc/bash.bashrc ---> ~/.bashrc
 
+## $相关
+
+> * $$     当前进程PID
+> * $?      最后一个执行命令的返回值
+> * $#     positional parameter的个数
+> * $@    所有参数当成一个string中的多个分隔的word
+> * $*     把所有参数当成一个word，也就是说，当成只有一个参数
+> * ${<u>num</u>}     取参数，区分token，如引用数组下标时 \${arr[0]}
+> * $(<u>command</u>)      取command的返回值
+> * $((<u>expression</u>)) 、\$[]  (尽量不用)  取算数表达式的返回值
+
 ## terminology
 
 ### metacharacter
@@ -101,8 +112,11 @@ command1 || command2
 
 {}只是用于帮助区分变量名，通常用于shell脚本中使用大于10个参数的引用
 
+区分token，如引用数组下标时 \${arr[0]}
+
 ```sh
 ${10}
+${arr[0]}
 ```
 
 
@@ -489,8 +503,6 @@ esac
 
 
 
-
-
 # Handing user input
 
 ## command line parameters
@@ -521,7 +533,7 @@ ${10}
 name=$(basename $0)
 ```
 
-### special parameter $#,$@,$*
+### special parameter $#,\$@,\$*
 
 #### $#
 
@@ -529,7 +541,7 @@ name=$(basename $0)
 echo $#
 ```
 
-> $#只能表示脚本参数的个数，不能用于${$#}
+> \$#只能表示脚本参数的个数，不能用于${$#}
 
 ```sh
 echo ${$#}  #不是传入的最后一个参数
@@ -542,7 +554,7 @@ s.sh 1 1 1 2 2 2
 # 输出为 2
 ```
 
-#### $@和$*
+#### \$@和$*
 
 这两个para把所有参数当成一个string，用于for迭代
 
@@ -551,6 +563,10 @@ s.sh 1 1 1 2 2 2
 > $@把所有参数当成一个string中的多个分隔的word
 >
 > $*把所有参数当成一个word，也就是说，当成只有一个参数
+
+#### $$
+
+shell自动设置这个环境变量为当前的PID
 
 ### 迭代脚本参数
 
@@ -611,7 +627,7 @@ getopt ab:cd -a -b test1 -cde test2 test3
 
 #### using getopt
 
-set -- $(getopt -q ab:cd "$@")
+set -- \$(getopt -q ab:cd "$@")
 
 > 使用set -- xxx，可以将脚本positional parameters设置为xxx
 
@@ -621,7 +637,7 @@ set -- $(getopt -q ab:cd "$@")
 
 ```sh
 read name ### 读取stdio保存到name变量中
-read -p "Enter your name: " first last ###带提示的读取，分别到first，last变量中，多余的数据读入last中
+read -p "Enter your name: " first last ###带提示的读取，分别到first，last变量中，多余的数据读入last中，没有变量用于保存读的数据，默认保存在REPLY中，$REPLY
 
 ```
 
@@ -649,3 +665,196 @@ echo "xxxx" >&{fd} ##从定向xxxx到fd文件描述符（即输出到第几个�
 exec {fd}>{obj}
 ```
 
+## /dev/null 文件
+
+这个文件是空文件，用于丢弃输出或者清空文件
+
+```sh
+exec 2>/dev/null  ##redirect STDERR to /dev/null，discard all message
+cat /dev/null>text.txt ## clear the file making that empty but still exist
+```
+
+
+
+# Script control
+
+![image-20220718202842490](C:\Users\pc\AppData\Roaming\Typora\typora-user-images\image-20220718202842490.png)
+
+## generate signals
+
+interrupt process  CTRL+C
+
+> SIGINT信号
+>
+> shell被打断，操作系统停止给shell调用时间，当shell收到这个信号时，会给每一个在这个shell中启动的进程发送SIGINT信号
+
+stop process CTRL+Z
+
+> SIGTSTP 信号
+>
+> 停止进程和终止进程不一样的，停止进程会保留进程数据在内存中，以便继续执行
+
+## trap signals
+
+> **trap** *commands signals* 
+>
+> 常用在脚本中，当shell收到signal时，用于执行command，而不是默认的shell处理
+>
+> trap可以改变，只影响之后的脚本
+>
+> 删除trap：
+>
+> trap -- signals
+
+## running scripts in background mode
+
+```sh
+command &
+```
+
+后台运行的脚本在shell退出时也会退出
+
+阻止这个脚本退出的命令：
+
+```sh
+nohup command &
+```
+
+# Function
+
+## basic
+
+name () compound-command
+
+function name [()] compound-command
+
+常用语法有二：
+
+```sh
+name () {
+	commands
+}
+function name [()] {
+	commands
+}
+```
+
+> * 函数要在使用之前定义，否则会报错
+> * 函数名必须唯一，否则后面定义的相同的函数名会覆盖以前定义的（不会报错）
+> * 如果function保留字有，但是没有（），那么commands必须用{}包括起来
+
+## returning value
+
+* 默认返回值：函数中最后一个执行的命令的返回值，用$?查看返回值，不推荐，中间执行的命令返回值不可捕捉
+
+* 使用return command：
+
+  > 手动设置函数exit status，仍然保存在$?中，存在超过范围的问题
+  >
+  > 应尽快使用返回值，因为可以被覆盖
+  >
+  > 值的范围只能在0-255之间
+
+* 捕捉返回值
+
+  ```sh
+  f () compound-command
+  captured=$(f)
+  ```
+
+  > return的值不会被捕捉，建议用echo，所有echo的内容都会被捕捉
+
+## using variable in function
+
+函数就是一个迷你脚本，可以使用一般脚本传递参数一样的规则
+
+> * $0是通用的，也就是说函数内使用的和所属的脚本一样
+>
+> * 其他的positional parameter不能通用，要想使用外层脚本的参数，需要调用函数时传入进来
+>
+>   func $1 \$2
+>
+> * 在函数中使用的shift只作用于函数
+
+函数内可以使用两类变量：global、local
+
+### global variable
+
+在脚本内定义的变量默认都是global的，即函数内定义的全局变量能够在函数外使用，函数外定义的全局变量也可以在函数内使用，不建议使用，造成很多混淆
+
+### local variable
+
+使用local关键词放在变量名前
+
+```sh
+local varname
+```
+
+> local 只用于函数内！
+
+### pasing arrays to function
+
+数组：
+
+```sh
+array=(x x x x x)
+```
+
+> （）中用空格分隔开
+>
+> 一个字符串也是一个数组，所有字符都保存在0号位置
+>
+> ​	var="hello world"; echo ${var[0]}
+
+传递数组给函数：
+
+```sh
+arr=(1 2 3 4 5)
+func $(echo ${a[*]})
+####
+arr2=$@
+```
+
+> 先解引用数组（拆散），然后传递给函数
+>
+> 在函数内通过$@取出数组（重装）
+
+### returning array to script
+
+类似，现在函数内拆散，然后在外面重装
+
+```sh
+f () {
+	arr=(1 2 3 4 5)
+	echo ${arr[*]}
+}
+result=($(f))
+```
+
+## creating library script
+
+因为会创建一个新的shell执行shell脚本，当那个脚本执行完成后，所产生的影响不会在执行脚本的shell中
+
+一个办法就是使用source命令，这个命令用于在当前shell中执行脚本，也就达到了library的作用
+
+```sh
+. ./lib.sh
+xxx
+xxx
+```
+
+这样lib.sh执行后产生的影响后续脚本也能使用
+
+### advanced library script
+
+在.bashrc中source 你需要的库脚本，之后所有的shell都能使用了
+
+# Sed
+
+## basic
+
+sed stream editor，流式处理文本文件，处理流程：从input读取一行，匹配预先写好的sed 脚本，同时处理，最后输出到STDOUT。处理完后读取下一行进行同样的流程直到所有行都处理完成。
+
+> 基本命令格式：**sed** *options script file* 
+>
+> script 只能指定一个command，如果有多个命令要执行，需要加上 -e / -f filename（分别从命令行中读，和从文件中读取执行命令）
