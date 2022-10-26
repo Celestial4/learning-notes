@@ -24,6 +24,20 @@
 >
 > CTRL+D	EOF字符，表示读结束
 
+## quoting
+
+quoting可以使某些特殊意义的字符和保留字 表示原本字面值escape
+
+分为三种：\   单引号' '	双引号 ""
+
+> \  :转义，当 \\<newline> 时,shell认为是连续输入
+>
+> ' ：单引号内会保留每一个字符的字面值，这种quote里面不能放' 本身，因为会被视为多个' ' 拼接成字符串
+>
+> ​	echo ' \\'''   ----> \ 
+>
+> " ： 所有字符保留原始字面值，除了$,\,`(command substitution),!(历史命令)
+
 ## terminology
 
 ### metacharacter
@@ -977,46 +991,4 @@ gawk处理每行数据时，会根据field separation character划分字段，�
 > $n 第n个字段
 
 gawk默认fs为空白字符，例如tab space
-
-# Regular Expression
-
-## basic regular expression (BRE)
-
-> plain text
->
-> special characters ：	.*[]^${}\+?|()  这些字符要匹配的话必须转义 "\\."
->
-> anchor characters ：	^ $
->
-> dot character ： 占一个字符，可以匹配除newline符以外任何字符
->
-> asterisk ：	*前的字符可以重复0-n次
-
-### character classes
-
-[] 方括号中放任意想匹配的字符，只要其中一个匹配上就算成功匹配，占一个字符
-
-> * [abc] 手动输入
-> * [a-z1-9]  范围
-> * [^abc1-9]  范围否定
-
-special classes:
-
-> [[:alpha:]]    Matches any alphabetical character, either upper or lower case
->
-> [[:alnum:]]	Matches any alphanumeric character 0–9, A–Z, or a–z
->
-> [[:blank:]]		Matches a space or Tab character
->
-> [[:digit:]]		Matches a numerical digit from 0 through 9
->
-> [[:lower:]]		Matches any lowercase alphabetical character a–z
->
-> [[:print:]]		Matches any printable character
->
-> [[:punct:]]		Matches a punctuation character
->
-> [[:space:]]		Matches any whitespace character: space, Tab, NL, FF, VT, CR
->
-> [[:upper:]]		Matches any uppercase alphabetical character A–Z
 
